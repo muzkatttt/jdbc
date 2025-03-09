@@ -13,6 +13,17 @@ public class JdbcPreparedStatementRunner {
         var result = getEmployeeById(employeeId);
         System.out.println(result);
 
+
+
+        try {
+            checkMetaData();
+        }
+        finally {
+            ConnectionPoolManager.closePool();
+        }
+
+
+
         /* этот блок кода к примеру из семинара
         var resultGetEmployeeBetween = getEmployeeBetween(LocalDate.of(2010, 10, 1).atStartOfDay(),
                 LocalDate.now().atStartOfDay());
@@ -47,6 +58,30 @@ public class JdbcPreparedStatementRunner {
     }
 */
     }
+
+    // данный метод позволяет вывести названия таблиц, схем и т.д. из подключенной БД в консоль
+    private static void checkMetaData() throws SQLException {
+        try (var connection = ConnectionManager.open()) {
+            var metaData = connection.getMetaData();
+            var catalogs = metaData.getCatalogs();
+            while(catalogs.next()){
+                var catalog = catalogs.getString(1);
+                //System.out.println(catalogs.getString(1));
+                var schemas = metaData.getSchemas();
+                while (schemas.next()) {
+                    var schema = schemas.getString("TABLE_SCHEM");
+                    var tables = metaData.getTables(catalog, schema, "%", new String[]{"TABLE"});
+                    if(schema.equals("public")){
+                        while (tables.next()) {
+                            System.out.println(tables.getString("TABLE_NAME"));
+                        }
+
+                    }
+                }
+            }
+        }
+    }
+
     private static List<Long> getEmployeeById(Long employeeId) throws SQLException {
         // в запросах с PreparedStatement используется ? для обозначения всех неизвестных параметров
         String sql = """
